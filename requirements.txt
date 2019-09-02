@@ -1,0 +1,8 @@
+Click==7.0
+dlib==19.17.0
+-e git+https://github.com/tejashah88/face_recognition.git@1239c4d566e4e0dc49e4c9f51dabe173dd7e1736#egg=face_recognition
+face-recognition-models==0.3.0
+numpy==1.17.1
+opencv-python==4.1.0.25
+Pillow==6.1.0
+pkg-resources==0.0.0
