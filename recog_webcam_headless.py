@@ -7,9 +7,6 @@ import threading
 import platform
 
 # Source: https://github.com/ageitgey/face_recognition/blob/master/examples/facerec_from_webcam_multiprocessing.py
-# Might want to look into KNN: https://github.com/ageitgey/face_recognition/blob/master/examples/face_recognition_knn.py
-# MacOS or Linux Setup: https://gist.github.com/ageitgey/629d75c1baac34dfa5ca2a1928a7aeaf
-# Raspi setup: https://gist.github.com/ageitgey/1ac8dbe8572f3f533df6269dab35df65
 
 # This is a little bit complicated (but fast) example of running face recognition on live video from your webcam.
 # This example is using multiprocess.
@@ -84,8 +81,9 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
         rgb_frame = frame_process[:, :, ::-1]
 
         # Find all the faces and face encodings in the frame of video, cost most time
-        face_locations = face_recognition.face_locations(rgb_frame, model="hog")
-        face_encodings = face_recognition.face_encodings(rgb_frame, face_locations, num_jitters=1)
+        face_locations = face_recognition.face_locations(rgb_frame)
+        print("Found {} faces in image.".format(len(face_locations)))
+        face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 
         # Loop through each face in this frame of video
         for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
@@ -149,8 +147,8 @@ if __name__ == '__main__':
     known_face_names = []
     for face in faces:
         person_image = face_recognition.load_image_file(face['path'])
-
         person_face_encodings = face_recognition.face_encodings(person_image, num_jitters=10)
+
         if len(person_face_encodings) > 0:
             person_face_encoding = person_face_encodings[0]
 
@@ -173,42 +171,37 @@ if __name__ == '__main__':
     fps_list = []
     tmp_time = time.time()
     while not Global.is_exit:
-        while Global.write_num != last_num:
-            last_num = int(Global.write_num)
+        try:
+            while Global.write_num != last_num:
+                last_num = int(Global.write_num)
 
-            # Calculate fps
-            delay = time.time() - tmp_time
-            tmp_time = time.time()
-            fps_list.append(delay)
-            if len(fps_list) > 5 * worker_num:
-                fps_list.pop(0)
-            fps = len(fps_list) / numpy.sum(fps_list)
-            print("fps: %.2f" % fps)
+                # Calculate fps
+                delay = time.time() - tmp_time
+                tmp_time = time.time()
+                fps_list.append(delay)
+                if len(fps_list) > 5 * worker_num:
+                    fps_list.pop(0)
+                fps = len(fps_list) / numpy.sum(fps_list)
+                print("fps: %.2f" % fps)
 
-            # Calculate frame delay, in order to make the video look smoother.
-            # When fps is higher, should use a smaller ratio, or fps will be limited in a lower value.
-            # Larger ratio can make the video look smoother, but fps will hard to become higher.
-            # Smaller ratio can make fps higher, but the video looks not too smoother.
-            # The ratios below are tested many times.
-            if fps < 6:
-                Global.frame_delay = (1 / fps) * 0.75
-            elif fps < 20:
-                Global.frame_delay = (1 / fps) * 0.5
-            elif fps < 30:
-                Global.frame_delay = (1 / fps) * 0.25
-            else:
-                Global.frame_delay = 0
+                # Calculate frame delay, in order to make the video look smoother.
+                # When fps is higher, should use a smaller ratio, or fps will be limited in a lower value.
+                # Larger ratio can make the video look smoother, but fps will hard to become higher.
+                # Smaller ratio can make fps higher, but the video looks not too smoother.
+                # The ratios below are tested many times.
+                if fps < 6:
+                    Global.frame_delay = (1 / fps) * 0.75
+                elif fps < 20:
+                    Global.frame_delay = (1 / fps) * 0.5
+                elif fps < 30:
+                    Global.frame_delay = (1 / fps) * 0.25
+                else:
+                    Global.frame_delay = 0
 
-            # Display the resulting image
-            cv2.imshow('Video', write_frame_list[prev_id(Global.write_num, worker_num)])
-
-        # Hit 'q' on the keyboard to quit!
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+            time.sleep(0.01)
+        except KeyboardInterrupt:
             Global.is_exit = True
-            print()
             break
-
-        time.sleep(0.01)
 
     # Quit
     cv2.destroyAllWindows()
