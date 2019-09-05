@@ -48,7 +48,7 @@ class PersonDB:
         if name in self.db:
             return self.db[name]
         else:
-            return None
+            raise Exception(f'{name} not found in person database!')
 
     def get_all_people(self):
         return list(self.db.values())
@@ -56,6 +56,8 @@ class PersonDB:
     def set_person(self, name, person):
         if name in self.db:
             self.db[name] = person
+        else:
+            raise Exception(f'{name} not found in person database!')
 
 RELAY_PIN = 4
 grovepi.pinMode(RELAY_PIN, 'OUTPUT')
@@ -145,24 +147,27 @@ if __name__ == '__main__':
                         first_match_index = matches.index(True)
                         name = known_face_names[first_match_index]
 
-                    if name != UNKNOWN_NAME:
-                        if found_person is None:
-                            found_person = PEOPLE_DB.get_person(name)
-                        found_person.add_point()
-                    else:
-                        if found_person is not None:
-                            found_person.reset()
-                            found_person = None
-
                     print(f"  Found {name}'s face at box coordinates {(left, top)}' to {(right, bottom)}")
 
-                    if found_person is not None:
+                    if found_person is not None and name == found_person.name:
+                        found_person.add_point()
                         print(f'  Score for found person is {found_person.score} / {found_person.MAX_SCORE}')
 
                         if found_person.verified:
                             print(f'  {name} is verified! Unlocking door...')
                             unlock_door(True)
+                    elif name != UNKNOWN_NAME:
+                        if found_person is not None:
+                            found_person.reset()
+
+                        found_person = PEOPLE_DB.get_person(name)
+                        found_person.add_point()
+                        print(f'  Score for found person is {found_person.score} / {found_person.MAX_SCORE}')
                     else:
+                        if found_person is not None:
+                            found_person.reset()
+                            found_person = None
+
                         print('  Unknown person found! Locking door...')
                         unlock_door(False)
             else:
