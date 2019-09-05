@@ -6,14 +6,16 @@
 # You can follow this installation instructions to get your RPi set up:
 # https://gist.github.com/ageitgey/1ac8dbe8572f3f533df6269dab35df65
 
+from is_on_raspi import is_raspberry_pi
+
+if not is_raspberry_pi():
+    print('Warning: Only Raspberry Pi is supported!')
+    exit(-1)
+
+
 import face_recognition
 import picamera
 import numpy as np
-from is_on_raspi import is_raspberry_pi
-
-if not is_raspberry_pi:
-    print("Warning: Unsupported platform detected!")
-    exit(-1)
 
 # Get a reference to the Raspberry Pi camera.
 # If this fails, make sure you have a camera connected to the RPi and that you
@@ -25,13 +27,13 @@ camera.resolution = (320, 240)
 output = np.empty((240, 320, 3), dtype=np.uint8)
 
 faces = [
-    { 'name': 'Tejas Shah', 'path': 'known-people/tejas.png' }
+    { 'name': 'Tejas Shah', 'path': '../known-people/tejas.png' }
 ]
 
 # For all images of known people, load each one and learn how to recognize it.
 known_face_encodings = []
 known_face_names = []
-print("Loading known face image(s)")
+print('Loading known face image(s)')
 for face in faces:
     person_image = face_recognition.load_image_file(face['path'])
     person_face_encodings = face_recognition.face_encodings(person_image)
@@ -49,13 +51,13 @@ face_locations = []
 face_encodings = []
 
 while True:
-    print("Capturing image.")
+    print('Capturing image.')
     # Grab a single frame of video from the RPi camera as a numpy array
-    camera.capture(output, format="rgb")
+    camera.capture(output, format='rgb')
 
     # Find all the faces and face encodings in the current frame of video
     face_locations = face_recognition.face_locations(output)
-    print("Found {} faces in image.".format(len(face_locations)))
+    print(f'Found {len(face_locations)} faces in image.')
     face_encodings = face_recognition.face_encodings(output, face_locations)
 
     # Loop over each face found in the frame to see if it's someone we know.
@@ -63,7 +65,7 @@ while True:
         # See if the face is a match for the known face(s)
         matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.6)
 
-        name = "Unknown"
+        name = 'Unknown'
 
         # If a match was found in known_face_encodings, just use the first one.
         if True in matches:

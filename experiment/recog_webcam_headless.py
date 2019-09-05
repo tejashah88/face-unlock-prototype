@@ -39,7 +39,8 @@ def capture(read_frame_list, Global, worker_num):
     # video_capture.set(3, 640)  # Width of the frames in the video stream.
     # video_capture.set(4, 480)  # Height of the frames in the video stream.
     # video_capture.set(5, 30) # Frame rate.
-    print("Width: %d, Height: %d, FPS: %d" % (video_capture.get(3), video_capture.get(4), video_capture.get(5)))
+    width, height, fps = (video_capture.get(3), video_capture.get(4), video_capture.get(5))
+    print(f'Width: {width}, Height: {height}, FPS: {fps}')
 
     while not Global.is_exit:
         # If it's time to read a frame
@@ -82,7 +83,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
 
         # Find all the faces and face encodings in the frame of video, cost most time
         face_locations = face_recognition.face_locations(rgb_frame)
-        print("Found {} faces in image.".format(len(face_locations)))
+        print(f'Found {len(face_locations)} faces in image.')
         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 
         # Loop through each face in this frame of video
@@ -90,7 +91,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             # See if the face is a match for the known face(s)
             matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.6)
 
-            name = "Unknown"
+            name = 'Unknown'
 
             # If a match was found in known_face_encodings, just use the first one.
             if True in matches:
@@ -112,7 +113,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
 
 if __name__ == '__main__':
     faces = [
-        { 'name': 'Tejas Shah', 'path': 'known-people/tejas.png' }
+        { 'name': 'Tejas Shah', 'path': '../known-people/tejas.png' }
     ]
 
     # Fix Bug on MacOS
@@ -182,7 +183,7 @@ if __name__ == '__main__':
                 if len(fps_list) > 5 * worker_num:
                     fps_list.pop(0)
                 fps = len(fps_list) / numpy.sum(fps_list)
-                print("fps: %.2f" % fps)
+                print('fps: %.2f' % fps)
 
                 # Calculate frame delay, in order to make the video look smoother.
                 # When fps is higher, should use a smaller ratio, or fps will be limited in a lower value.

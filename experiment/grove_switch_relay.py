@@ -38,6 +38,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 '''
 
+from is_on_raspi import is_raspberry_pi
+
+if not is_raspberry_pi():
+    print('Warning: Only Raspberry Pi is supported!')
+    exit(-1)
+
 import time
 import grovepi
 
@@ -49,25 +55,25 @@ switch = 3
 # SIG,NC,VCC,GND
 relay = 4
 
-grovepi.pinMode(switch, "INPUT")
-grovepi.pinMode(relay, "OUTPUT")
+grovepi.pinMode(switch, 'INPUT')
+grovepi.pinMode(relay, 'OUTPUT')
 
-print("Starting read loop...")
+print('Starting read loop...')
 
 while True:
     try:
         if grovepi.digitalRead(switch):
             grovepi.digitalWrite(relay, 1)
-            print("Relay on!")
+            print('Relay on!')
         else:
             grovepi.digitalWrite(relay, 0)
-            print("Relay off!")
+            print('Relay off!')
 
         time.sleep(.01)
 
     except KeyboardInterrupt:
         grovepi.digitalWrite(relay, 0)
-        print("Stopping read loop...")
+        print('Stopping read loop...')
         break
     except IOError as ioex:
-        print(f"Error: {ex}")
+        print(f'Error: {ex}')

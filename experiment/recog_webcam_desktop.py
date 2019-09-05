@@ -1,11 +1,3 @@
-import face_recognition
-import cv2
-from multiprocessing import Process, Manager, cpu_count, set_start_method
-import time
-import numpy
-import threading
-import platform
-
 # Source: https://github.com/ageitgey/face_recognition/blob/master/examples/facerec_from_webcam_multiprocessing.py
 
 # This is a little bit complicated (but fast) example of running face recognition on live video from your webcam.
@@ -15,9 +7,24 @@ import platform
 # OpenCV is *not* required to use the face_recognition library. It's only required if you want to run this
 # specific demo. If you have trouble installing it, try any of the other demos that don't require it instead.
 
+import sys
+import os
+sys.path.append(os.path.abspath('..'))
 
-from is_on_raspi import is_raspberry_pi
-IS_RASPI = is_raspberry_pi()
+from utils.is_on_raspi import is_raspberry_pi
+
+if is_raspberry_pi():
+    print("Warning: The desktop demo isn't meant to run on the Raspberry Pi due to lack of GUI support. Please run this demo on a regular laptop/desktop.")
+    exit(-1)
+
+
+import face_recognition
+import cv2
+from multiprocessing import Process, Manager, cpu_count, set_start_method
+import time
+import numpy
+import threading
+import platform
 
 
 # Get next worker's id
@@ -43,7 +50,8 @@ def capture(read_frame_list, Global, worker_num):
     # video_capture.set(3, 640)  # Width of the frames in the video stream.
     # video_capture.set(4, 480)  # Height of the frames in the video stream.
     # video_capture.set(5, 30) # Frame rate.
-    print("Width: %d, Height: %d, FPS: %d" % (video_capture.get(3), video_capture.get(4), video_capture.get(5)))
+    width, height, fps = (video_capture.get(3), video_capture.get(4), video_capture.get(5))
+    print(f'Width: {width}, Height: {height}, FPS: {fps}')
 
     while not Global.is_exit:
         # If it's time to read a frame
@@ -85,7 +93,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
         rgb_frame = frame_process[:, :, ::-1]
 
         # Find all the faces and face encodings in the frame of video, cost most time
-        face_locations = face_recognition.face_locations(rgb_frame, model="hog")
+        face_locations = face_recognition.face_locations(rgb_frame, model='hog')
         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations, num_jitters=1)
 
         # Loop through each face in this frame of video
@@ -93,7 +101,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             # See if the face is a match for the known face(s)
             matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.6)
 
-            name = "Unknown"
+            name = 'Unknown'
 
             # If a match was found in known_face_encodings, just use the first one.
             if True in matches:
@@ -120,12 +128,8 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
 
 
 if __name__ == '__main__':
-    if IS_RASPI:
-        print("Warning: The desktop demo isn't meant to run on the Pi due to lack of GUI support. Please run this demo on a regular laptop/desktop.")
-        exit(0)
-
     faces = [
-        { 'name': 'Tejas Shah', 'path': 'known-people/tejas.png' }
+        { 'name': 'Tejas Shah', 'path': '../known-people/tejas.png' }
     ]
 
     # Fix Bug on MacOS
@@ -194,7 +198,7 @@ if __name__ == '__main__':
             if len(fps_list) > 5 * worker_num:
                 fps_list.pop(0)
             fps = len(fps_list) / numpy.sum(fps_list)
-            print("fps: %.2f" % fps, end='\r')
+            print('fps: %.2f' % fps, end='\r')
 
             # Calculate frame delay, in order to make the video look smoother.
             # When fps is higher, should use a smaller ratio, or fps will be limited in a lower value.
