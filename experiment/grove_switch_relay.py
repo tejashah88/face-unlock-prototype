@@ -38,7 +38,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 '''
 
-from is_on_raspi import is_raspberry_pi
+import os
+import sys
+sys.path.append(os.path.abspath('..'))
+
+from utils.is_on_raspi import is_raspberry_pi
 
 if not is_raspberry_pi():
     print('Warning: Only Raspberry Pi is supported!')

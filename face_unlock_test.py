@@ -19,7 +19,7 @@ class Person:
         self.name = name
         self.path = path
         self.score = 0
-        self.MAX_SCORE = 10
+        self.MAX_SCORE = 3
 
     @property
     def verified(self):
@@ -58,7 +58,6 @@ class PersonDB:
             self.db[name] = person
 
 RELAY_PIN = 4
-relay_state = 0
 grovepi.pinMode(RELAY_PIN, 'OUTPUT')
 
 camera = picamera.PiCamera()
@@ -73,7 +72,7 @@ PEOPLE_DB = PersonDB()
 def load_people_db():
     # Load the people DB with known faces.
     for file in os.listdir(KNOWN_PEOPLE_DIR):
-        person = Person(name=file.split('.')[0], path=KNOWN_PEOPLE_DIR + file)
+        person = Person(name=file.split('.')[0], path=KNOWN_PEOPLE_DIR + '/' + file)
         PEOPLE_DB.add_person(person)
 
 @progress_print(msg='Capturing image')
@@ -84,17 +83,14 @@ def capture_image():
     camera.capture(output, format='rgb')
     return output
 
-@progress_print(msg='Unlocking door')
+@progress_print(msg='Setting door state')
 def unlock_door(should_unlock):
     # Toggle the relay state based on the value of the input parameter.
     try:
-        new_relay_state = int(bool(should_unlock))
-        if relay_state != new_relay_state:
-            relay_state = new_relay_state
-            grovepi.digitalWrite(RELAY_PIN, relay_state)
+        relay_state = int(bool(should_unlock))
+        grovepi.digitalWrite(RELAY_PIN, relay_state)
     except KeyboardInterrupt:
         grovepi.digitalWrite(RELAY_PIN, 0)
-        break
     except IOError as ioex:
         print(f'Error: {ex}')
 
@@ -126,7 +122,7 @@ def detect_faces(input_img):
 
 if __name__ == '__main__':
     load_people_db()
-    known_face_names, known_face_encodings = train_faces_single(ALL_FACES)
+    known_face_names, known_face_encodings = train_faces_single(PEOPLE_DB.get_all_people())
 
     is_running = True
     found_person = None
@@ -148,22 +144,25 @@ if __name__ == '__main__':
                     first_match_index = matches.index(True)
                     name = known_face_names[first_match_index]
 
-                if name != UNKNOWN_NAME
+                if name != UNKNOWN_NAME:
                     if found_person is None:
                         found_person = PEOPLE_DB.get_person(name)
                     found_person.add_point()
                 else:
                     if found_person is not None:
+                        found_person.reset()
                         found_person = None
 
-                print(f"Found {name}'s face at box coordinates {(left, top)}' to {(right, bottom)}")
+                print(f"  Found {name}'s face at box coordinates {(left, top)}' to {(right, bottom)}")
 
                 if found_person is not None:
-                    print(f'Score for found person is {found_person.score} / {found_person.MAX_SCORE}')
+                    print(f'  Score for found person is {found_person.score} / {found_person.MAX_SCORE}')
 
                     if found_person.verified:
+                        print('  {name} is verified! Unlocking door...')
                         unlock_door(True)
                 else:
+                    print('  Lost original person! Locking door...')
                     unlock_door(False)
 
         except KeyboardInterrupt:
