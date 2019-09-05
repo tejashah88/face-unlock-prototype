@@ -83,7 +83,6 @@ def capture_image():
     camera.capture(output, format='rgb')
     return output
 
-@progress_print(msg='Setting door state')
 def unlock_door(should_unlock):
     # Toggle the relay state based on the value of the input parameter.
     try:
@@ -131,39 +130,47 @@ if __name__ == '__main__':
         try:
             frame = capture_image()
             face_locations, face_encodings = detect_faces(frame)
+            num_faces_detected = len(face_locations)
 
-            # Loop over each face found in the frame to see if it's someone we know.
-            for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
-                # See if the face is a match for the known face(s)
-                matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.6)
+            if num_faces_detected > 0:
+                # Loop over each face found in the frame to see if it's someone we know.
+                for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+                    # See if the face is a match for the known face(s)
+                    matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.6)
 
-                name = UNKNOWN_NAME
+                    name = UNKNOWN_NAME
 
-                # If a match was found in known_face_encodings, just use the first one.
-                if True in matches:
-                    first_match_index = matches.index(True)
-                    name = known_face_names[first_match_index]
+                    # If a match was found in known_face_encodings, just use the first one.
+                    if True in matches:
+                        first_match_index = matches.index(True)
+                        name = known_face_names[first_match_index]
 
-                if name != UNKNOWN_NAME:
-                    if found_person is None:
-                        found_person = PEOPLE_DB.get_person(name)
-                    found_person.add_point()
-                else:
+                    if name != UNKNOWN_NAME:
+                        if found_person is None:
+                            found_person = PEOPLE_DB.get_person(name)
+                        found_person.add_point()
+                    else:
+                        if found_person is not None:
+                            found_person.reset()
+                            found_person = None
+
+                    print(f"  Found {name}'s face at box coordinates {(left, top)}' to {(right, bottom)}")
+
                     if found_person is not None:
-                        found_person.reset()
-                        found_person = None
+                        print(f'  Score for found person is {found_person.score} / {found_person.MAX_SCORE}')
 
-                print(f"  Found {name}'s face at box coordinates {(left, top)}' to {(right, bottom)}")
-
+                        if found_person.verified:
+                            print(f'  {name} is verified! Unlocking door...')
+                            unlock_door(True)
+                    else:
+                        print('  Unknown person found! Locking door...')
+                        unlock_door(False)
+            else:
                 if found_person is not None:
-                    print(f'  Score for found person is {found_person.score} / {found_person.MAX_SCORE}')
+                    found_person.reset()
+                    found_person = None
 
-                    if found_person.verified:
-                        print('  {name} is verified! Unlocking door...')
-                        unlock_door(True)
-                else:
-                    print('  Lost original person! Locking door...')
-                    unlock_door(False)
+                unlock_door(False)
 
         except KeyboardInterrupt:
             is_running = False
